@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard - StudyGlade</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    
+<style>
+/* =========================
+   Reset & Base Styles
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: url("https://images.unsplash.com/photo-1456324504439-367cee3b3c32?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHN0dWRlbnQlMjB3cml0aW5nfGVufDB8fDB8fHww&auto=format&fit=crop&q=60&w=500")
+          no-repeat center center/cover;
+  color: #333;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* =========================
+   Navbar
+========================= */
+.navbar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+.nav-brand {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+.nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.nav-link:hover,
+.nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* =========================
+   Container
+========================= */
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem;
+}
+
+/* =========================
+   Dashboard Header
+========================= */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.dashboard-header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  color: #222;
+}
+.header-subtitle {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.8rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102,126,234,0.35);
+}
+.btn-secondary {
+  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(67,206,162,0.3);
+}
+.btn-secondary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(67,206,162,0.35);
+}
+
+/* =========================
+   Stats Section
+========================= */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+.stat-card::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.05);
+  top: 0;
+  left: -100%;
+  transform: skewX(-20deg);
+  transition: 0.5s;
+}
+
+.stat-card:hover::after {
+  left: 100%;
+}
+
+.stat-card h3 {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Add subtle badges for statuses */
+.status-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+}
+
+.status-pending {
+  background: #ffb74d;
+}
+.status-inprogress {
+  background: #64b5f6;
+}
+.status-completed {
+  background: #81c784;
+}
+/* Unique color themes for each stat card */
+.stat-card.total {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.stat-card.pending {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+}
+.stat-card.inprogress {
+  background: linear-gradient(135deg, #36d1dc, #5b86e5);
+}
+.stat-card.completed {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+}
+.stat-card.subjects {
+  background: linear-gradient(135deg, #ff758c, #ff7eb3);
+}
+
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 768px) {
+  .stats-section {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+#total-questions::before { content: "\f129"; } /* fa-question-circle */
+#pending-questions::before { content: "\f017"; } /* fa-clock */
+#completed-questions::before { content: "\f00c"; } /* fa-check */
+#total-earnings::before { content: "\f155"; } /* fa-dollar-sign */
+
+/* =========================
+   Dashboard Grid & Cards
+========================= */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.8rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+.card h3 {
+  margin-bottom: 1rem;
+  color: #444;
+}
+.questions-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* =========================
+   Section Titles
+========================= */
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem 0;
+  color: #333;
+}
+
+/* =========================
+   CTA Section
+========================= */
+.cta-section {
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  color: #fff;
+  text-align: center;
+  padding: 2.5rem;
+  border-radius: 16px;
+  margin: 2rem 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+.cta-section h2 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+.cta-section p {
+  font-size: 1.1rem;
+  margin-bottom: 1.2rem;
+}
+
+/* =========================
+   Footer
+========================= */
+.footer {
+  background: #222;
+  color: #ccc;
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.footer a {
+  color: #fff;
+  margin: 0 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.footer a:hover {
+  color: #667eea;
+}
+.footer-brand {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+/* =========================
+   Modal
+========================= */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+.modal-content {
+  background: #fff;
+  margin: 5% auto;
+  padding: 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  animation: fadeIn 0.3s ease;
+}
+.close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.6rem;
+  cursor: pointer;
+  color: #666;
+  transition: 0.3s;
+}
+.close:hover {
+  color: #222;
+}
+
+/* =========================
+   Forms
+========================= */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #444;
+}
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: 0.3s;
+}
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 6px rgba(102,126,234,0.3);
+}
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   File Inputs
+========================= */
+input[type="file"] {
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  background: #f9f9f9;
+  transition: 0.2s;
+}
+input[type="file"]:hover {
+  background: #fff;
+  border-color: #667eea;
+}
+/* Assignments modal larger than question modal */
+
+.modal-content.large {
+  width: 80%;
+  max-width: 800px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  margin: 5% auto;
+  position: relative;
+  transform: scale(0.95);
+  opacity: 0;
+  animation: zoomIn 0.3s ease forwards;
+}
+
+/* Table styling */
+.table-container {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.assignments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.assignments-table th,
+.assignments-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.assignments-table th {
+  background-color: #007bff;
+  color: #fff;
+  position: sticky;
+  top: 0;
+}
+
+.assignments-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.assignments-table tr:hover {
+  background-color: #eef5ff;
+  transition: background-color 0.2s ease-in-out;
+}
+/* === ASSIGNMENT DETAILS MODAL === */
+#assignment-details-modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: auto;
+  transition: opacity 0.3s ease;
+}
+
+#assignment-details-modal.show {
+  display: block;
+  animation: fadeInModal 0.3s ease forwards;
+}
+
+.modal-content.large {
+  width: 80%;
+  max-width: 800px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  margin: 5% auto;
+  position: relative;
+  transform: scale(0.95);
+  opacity: 0;
+  animation: zoomIn 0.3s ease forwards;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Close button hover */
+.modal .close:hover {
+  color: red;
+  cursor: pointer;
+}
+.modal-content.large {
+  width: 80%;
+  max-width: 800px;
+}
+/* Close Button */
+.modal-content.large .close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 1.5rem;
+  color: #444;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modal-content.large .close:hover {
+  color: #000;
+}
+
+/* Grid and Details */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.details-description,
+#details-files {
+  margin-top: 25px;
+}
+
+#details-file-links a {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 8px 14px;
+  background: var(--primary-color, #007bff);
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+#details-file-links a:hover {
+  background: #0056b3;
+}
+
+
+/* =========================
+   Animations
+========================= */
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(-10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 768px) {
+  .stats-section { grid-template-columns: 1fr 1fr; }
+  .form-row { flex-direction: column; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+/* Status badges */
+.status-badge {
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+.badge-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.badge-progress {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.badge-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.badge-pastdue {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.badge-neutral {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+/* === RESPONSIVE DESIGN FOR ASSIGNMENT DETAILS MODAL === */
+@media (max-width: 768px) {
+  .modal-content.large {
+    width: 92%;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 10px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #details-file-links a {
+    display: block;
+    margin-bottom: 10px;
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content.large {
+    padding: 15px;
+  }
+
+  .modal-content.large .close {
+    top: 10px;
+    right: 15px;
+    font-size: 1.3rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  .details-grid div {
+    font-size: 0.95rem;
+  }
+
+  #details-description,
+  #details-files {
+    margin-top: 15px;
+  }
+}
+
+#payment-modal .modal-content {
+  max-width: 500px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  animation: fadeIn 0.3s ease;
+}
+
+#payment-modal h2 {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #222;
+}
+
+#payment-modal .form-group {
+  margin-bottom: 15px;
+}
+
+#payment-modal input,
+#payment-modal select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+#payment-modal .btn-primary {
+  width: 100%;
+  background: #007bff;
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+#payment-modal .btn-primary:hover {
+  background: #0056b3;
+}
+
+.pagination-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#pagination-controls button {
+  margin: 0 2px;
+  padding: 5px 10px;
+}
+
+#pagination-controls .active-page {
+  background-color: #007BFF;
+  color: white;
+  font-weight: bold;
+}
+
+
+
+</style>
+
+
+  </head>
+ <body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-brand">StudyGlade</div>
+    <div class="nav-links">
+      <a href="#" class="nav-link active">Dashboard</a>
+      <a href="tutor.html" class="nav-link" >Tutor</a>
+      <a href="documents.html" class="nav-link">Documents</a>
+      <a href="chat.html" class="nav-link">Chat</a>
+      <a href="#" id="logout-btn" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+      <h1>Welcome, <span id="student-name">Student</span></h1>
+      <p class="header-subtitle">Post questions, track progress, and download completed assignments.</p>
+      <button class="btn-primary" onclick="showQuestionModal()">Post New Question</button>
+    </div>
+
+    <!-- Stats Section -->
+   <!-- Stats Section -->
+<div class="stats-section">
+  <div class="stat-card total">
+    <h3>Total Questions</h3>
+    <div class="stat-value" id="total-questions">
+      <i class="fa-solid fa-clipboard-list"></i> 0
+    </div>
+  </div>
+
+  <div class="stat-card pending">
+    <h3>Pending</h3>
+    <div class="stat-value" id="pending-questions">
+      <i class="fa-solid fa-hourglass-half fa-spin"></i> 0
+    </div>
+  </div>
+
+  <div class="stat-card inprogress">
+    <h3>In Progress</h3>
+    <div class="stat-value" id="inprogress-questions">
+      <i class="fa-solid fa-spinner fa-spin"></i> 0
+    </div>
+  </div>
+
+  <div class="stat-card completed">
+    <h3>Completed</h3>
+    <div class="stat-value" id="completed-questions">
+      <i class="fa-solid fa-circle-check"></i> 0
+    </div>
+  </div>
+
+  <div class="stat-card subjects">
+    <h3>Subjects Covered</h3>
+    <div class="stat-value" id="subjects-covered">
+      <i class="fa-solid fa-book-open-reader"></i> 0
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+<div class="section-title" onclick="showAssignmentsModal()">
+  My Assignments <i class="fa-solid fa-table-list"></i>
+</div>
+
+</div>
+
+
+   
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+      <h2>Boost Your Learning!</h2>
+      <p>Explore study materials, upload notes, or post assignments to get expert help.</p>
+      <button class="btn-secondary" onclick="window.location.href='documents.html'">Explore Documents</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">StudyGlade</div>
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Support</a>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+      </div>
+      <p>&copy; 2025 StudyGlade. All rights reserved.</p>
+    </div>
+  </footer>
+
+ <!-- Question Modal -->
+<div id="question-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="hideQuestionModal()">&times;</span>
+    <h2>Post New Assignment / Question</h2>
+    <form id="question-form">
+      <div class="form-group">
+        <label for="questionTitle">Question Title</label>
+        <input type="text" id="questionTitle" name="questionTitle" required />
+      </div>
+      <div class="form-group">
+        <label for="questionDescription">Detailed Description</label>
+        <textarea id="questionDescription" name="questionDescription" rows="4" required></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="questionSubject">Subject</label>
+          <input type="text" id="questionSubject" name="questionSubject" required />
+        </div>
+        <div class="form-group">
+          <label for="questionTopic">Topic</label>
+          <input type="text" id="questionTopic" name="questionTopic" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="questionDeadline">Deadline</label>
+          <input type="datetime-local" id="questionDeadline" name="questionDeadline" required />
+        </div>
+       <div class="form-group">
+          <label for="questionAmount">Amount ($)</label>
+          <input type="number" id="questionAmount" name="questionAmount" min="1" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="questionDocument">Attach Document</label>
+          <input type="file" id="questionDocument" name="questionDocument" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar" />
+        </div>
+        <div class="form-group">
+          <label for="questionImage">Attach Image</label>
+          <input type="file" id="questionImage" name="questionImage" accept="image/*" />
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Post Assignment</button>
+    </form>
+  </div>
+</div>
+
+<!-- Payment Modal (outside question form) -->
+<div id="payment-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="hidePaymentModal()">&times;</span>
+    <h2>Complete Payment to Post Assignment</h2>
+    <form id="payment-form">
+      <div class="form-group">
+        <label for="numPages">Number of Pages</label>
+        <input type="number" id="numPages" name="numPages" min="1" required />
+      </div>
+      <div class="form-group">
+        <label for="paymentMethod">Payment Method</label>
+        <select id="paymentMethod" name="paymentMethod" required>
+          <option value="">Select Method</option>
+          <option value="mpesa">M-Pesa</option>
+          <option value="paypal">PayPal</option>
+          <option value="payoneer">Payoneer</option>
+          <option value="bank">Bank Transfer</option>
+        </select>
+      </div>
+      <div id="bank-details" style="display:none; background:#f9f9f9; padding:10px; border-radius:8px; margin-top:10px;">
+        <strong>Bank Transfer Details</strong><br />
+        Bank: Equity Bank<br />
+        Account Name: StudyGlade<br />
+        Account Number: 1234567890<br />
+        Swift Code: EQBLKENA<br />
+        <button type="button" class="btn-primary" id="mark-paid-btn">Mark as Paid</button>
+      </div>
+      <div class="form-group">
+        <label>Total Amount</label>
+        <input type="text" id="total-amount" readonly />
+      </div>
+      <button type="submit" class="btn-primary">Pay Now</button>
+    </form>
+  </div>
+</div>
+
+<!-- Assignments Modal -->
+<div id="assignments-modal" class="modal">
+  <div class="modal-content large">
+    <span class="close" onclick="hideAssignmentsModal()">&times;</span>
+    <h2>📚 My Assignments</h2>
+    <div class="table-container">
+      <table class="assignments-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Subject</th>
+            <th>Topic</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <th>Amount ($)</th>
+          </tr>
+        </thead>
+        <tbody id="assignments-table-body">
+          <!-- Rows added dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ✅ Pagination placed here -->
+    <div class="pagination-container">
+      <label for="rowsPerPageSelect">Rows per page:</label>
+      <select id="rowsPerPageSelect">
+        <option value="5" selected>5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+      </select>
+
+      <div id="pagination-controls"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignment Details Modal -->
+<div id="assignment-details-modal" class="modal">
+  <div class="modal-content large">
+    <span class="close" onclick="closeDetailsModal()">&times;</span>
+    <h2 id="details-title">Assignment Details</h2>
+    <div class="details-grid">
+      <p><strong>Subject:</strong> <span id="details-subject"></span></p>
+      <p><strong>Topic:</strong> <span id="details-topic"></span></p>
+      <p><strong>Status:</strong> <span id="details-status"></span></p>
+      <p><strong>Deadline:</strong> <span id="details-deadline"></span></p>
+      <p><strong>Amount:</strong> $<span id="details-amount"></span></p>
+    </div>
+    <div class="details-description">
+      <h3>Description</h3>
+      <p id="details-description"></p>
+    </div>
+    <div id="details-files">
+      <h3>Attached Files</h3>
+      <div id="details-file-links"></div>
+    </div>
+  </div>
+</div>
+
+<script src="index.js"></script>
+  </body>
+</html>
