@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -632,3 +633,779 @@
 
   </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Documents - StudyGlade</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(to right, #e0eafc, #cfdef3);
+        color: #333;
+        min-height: 100vh;
+      }
+
+      /* Navbar */
+      .navbar {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #fff;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .nav-brand {
+        font-size: 1.8rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+      .nav-links {
+        display: flex;
+        gap: 1rem;
+      }
+      .nav-link {
+        color: white;
+        text-decoration: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 30px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+      .nav-link:hover,
+      .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+
+      /* Container */
+      .container {
+        padding: 2.5rem;
+        max-width: 1200px;
+        margin: auto;
+      }
+      .documents-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+      }
+      .documents-header h1 {
+        font-size: 2.4rem;
+        margin-bottom: 0.5rem;
+        color: #4a4a4a;
+      }
+      .documents-header p {
+        color: #555;
+        font-size: 1.1rem;
+      }
+
+      /* Upload Section */
+      .upload-section {
+        background: rgba(255, 255, 255, 0.85);
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        backdrop-filter: blur(10px);
+      }
+      .upload-section label {
+        font-weight: 600;
+        color: #444;
+      }
+      .upload-section input,
+      .upload-section select {
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        width: 100%;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+      }
+      .upload-section input:focus,
+      .upload-section select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        outline: none;
+      }
+      .upload-section button {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        border: none;
+        padding: 0.6rem 1.5rem;
+        border-radius: 30px;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        align-self: flex-start;
+      }
+      .upload-section button:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      /* Filters */
+      .filters-section {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+      }
+      .search-box {
+        position: relative;
+        flex: 1;
+        min-width: 250px;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 0.6rem 2.8rem 0.6rem 1rem;
+        border-radius: 30px;
+        border: 1px solid #ccc;
+        outline: none;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+      }
+      .search-box input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 8px rgba(102, 126, 234, 0.2);
+      }
+      .search-box i {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #888;
+      }
+      .filter-controls select {
+        padding: 0.6rem 1rem;
+        border-radius: 15px;
+        border: 1px solid #ccc;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+      }
+      .filter-controls select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 6px rgba(102, 126, 234, 0.3);
+      }
+
+      /* Sections */
+      .section-title {
+        font-size: 1.7rem;
+        margin-bottom: 1.2rem;
+        font-weight: 700;
+        color: #4a4a4a;
+        border-left: 5px solid #667eea;
+        padding-left: 0.7rem;
+      }
+      .documents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.5rem;
+      }
+
+      /* Document Card */
+     /* Document Card with Hover Overlay */
+.document-card {
+  position: relative;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.document-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+/* Thumbnail */
+.doc-thumbnail {
+  width: 100%;
+  height: 150px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #667eea;
+  transition: transform 0.3s;
+}
+
+.document-card:hover .doc-thumbnail {
+  transform: scale(1.05);
+}
+/* Overlay */
+.doc-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(102,126,234,0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: 10px;
+}
+
+.document-card:hover .doc-overlay {
+  opacity: 1;
+}
+
+.doc-overlay button,
+.doc-overlay a {
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: white;
+  transition: transform 0.2s;
+}
+
+.doc-overlay button:hover,
+.doc-overlay a:hover {
+  transform: translateY(-2px);
+}
+
+/* Button Colors */
+.btn-download-overlay {
+  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+}
+
+.btn-view-overlay {
+  background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+}
+      .doc-title {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        font-size: 1.05rem;
+        color: #333;
+      }
+      .doc-meta {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+      }
+      .doc-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .doc-actions button,
+      .doc-actions a {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem 0;
+        border-radius: 30px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        color: white;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+      }
+      .btn-download {
+        background: linear-gradient(135deg, #43cea2, #185a9d);
+      }
+      .btn-download:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 5px 15px rgba(67, 206, 162, 0.4);
+      }
+      .btn-view {
+        background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      }
+      .btn-view:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 5px 15px rgba(255, 126, 95, 0.4);
+      }
+
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(3px);
+      }
+      .modal-content {
+        background: rgba(255, 255, 255, 0.97);
+        margin: 5% auto;
+        padding: 2rem;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 650px;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        animation: fadeIn 0.3s ease;
+      }
+      .close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        font-size: 1.6rem;
+        cursor: pointer;
+        color: #666;
+      }
+      .close:hover {
+        color: #333;
+      }
+
+      /* No Results */
+      .no-results {
+        text-align: center;
+        padding: 2.5rem;
+        color: #666;
+      }
+      .no-results i {
+        font-size: 3rem;
+        color: #bbb;
+        margin-bottom: 1rem;
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .filters-section {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .filter-controls select {
+          margin-left: 0;
+          margin-top: 0.5rem;
+        }
+      }
+      /* Document Card Upgrades */
+      .document-card {
+        position: relative;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 1.2rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+        overflow: hidden;
+      }
+      .document-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Thumbnail with Icon */
+      .doc-thumbnail {
+        width: 100%;
+        height: 160px;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: #667eea;
+        transition: all 0.3s ease;
+      }
+      .doc-thumbnail.pdf {
+        color: #e74c3c;
+      } /* PDF red */
+      .doc-thumbnail.docx {
+        color: #3498db;
+      } /* Word blue */
+      .doc-thumbnail.ppt {
+        color: #e67e22;
+      } /* PPT orange */
+      .doc-thumbnail.img {
+        color: #2ecc71;
+      } /* Images green */
+      .doc-thumbnail:hover {
+        transform: scale(1.05);
+      }
+
+      /* Overlay Actions */
+      .doc-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(102, 126, 234, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: 15px;
+      }
+      .document-card:hover .doc-overlay {
+        opacity: 1;
+      }
+      .doc-overlay button {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        color: #fff;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+      }
+      .doc-overlay .btn-view {
+        background: #ff7e5f;
+      }
+      .doc-overlay .btn-download {
+        background: #43cea2;
+      }
+      .doc-overlay button:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Document Info */
+      .doc-title {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        font-size: 1.05rem;
+        color: #333;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .doc-meta {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">StudyGlade</div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <a href="#" class="nav-link active">Documents</a>
+      <a href="chat.html" class="nav-link">Chat</a>
+      <a href="#" id="logout-btn" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="documents-header">
+      <h1>Document Library</h1>
+      <p>Upload, browse, and download learning materials</p>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="upload-section">
+      <label for="doc-title">Document Title</label>
+      <input type="text" id="doc-title" placeholder="Enter title" />
+
+      <label for="doc-category">Category</label>
+      <select id="doc-category">
+        <option value="notes">Lecture Notes</option>
+        <option value="past-papers">Past Papers</option>
+        <option value="solutions">Solutions</option>
+        <option value="books">Textbooks</option>
+        <option value="guides">Study Guides</option>
+      </select>
+
+      <label for="doc-subject">Subject</label>
+      <select id="doc-subject">
+        <option value="mathematics">Mathematics</option>
+        <option value="physics">Physics</option>
+        <option value="chemistry">Chemistry</option>
+        <option value="biology">Biology</option>
+        <option value="computer-science">Computer Science</option>
+        <option value="english">English</option>
+        <option value="history">History</option>
+      </select>
+
+      <label for="doc-file">Choose Document File</label>
+      <input type="file" id="doc-file" />
+      <button id="upload-btn">Upload Document</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search documents..." />
+        <i class="fas fa-search"></i>
+      </div>
+      <div class="filter-controls">
+        <select id="category-filter">
+          <option value="">All Categories</option>
+          <option value="notes">Lecture Notes</option>
+          <option value="past-papers">Past Papers</option>
+          <option value="solutions">Solutions</option>
+          <option value="books">Textbooks</option>
+          <option value="guides">Study Guides</option>
+        </select>
+        <select id="subject-filter">
+          <option value="">All Subjects</option>
+          <option value="mathematics">Mathematics</option>
+          <option value="physics">Physics</option>
+          <option value="chemistry">Chemistry</option>
+          <option value="biology">Biology</option>
+          <option value="computer-science">Computer Science</option>
+          <option value="english">English</option>
+          <option value="history">History</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Recent Uploads -->
+    <div class="section-title">Recent Uploads</div>
+    <div class="documents-grid" id="recent-documents">
+      <!-- Example Document Card -->
+   
+      <div class="document-card">
+        <div class="doc-thumbnail pdf"><i class="fas fa-file-pdf"></i></div>
+        <div class="doc-title">Linear Algebra Notes</div>
+        <div class="doc-meta">
+          <span>Mathematics</span>
+          <span>2MB</span>
+        </div>
+        <div class="doc-overlay">
+          <button class="btn-view" onclick="viewDocument('doc-id')">View</button>
+          <button class="btn-download" onclick="downloadDocument('doc-id')">Download</button>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Most Popular -->
+    <div class="section-title">Most Popular</div>
+    <div class="documents-grid" id="popular-documents"></div>
+
+    <!-- No Results -->
+    <div id="no-results" class="no-results" style="display: none">
+      <i class="fas fa-file-alt"></i>
+      <h3>No documents found</h3>
+      <p>Try adjusting your search or filters</p>
+    </div>
+  </div>
+
+  <!-- Document Modal -->
+  <div id="document-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="hideDocumentModal()">&times;</span>
+      <div id="document-details"></div>
+    </div>
+  </div>
+</body>
+
+   <script>
+  let documents = [
+    {
+      title: "Calculus Notes",
+      category: "notes",
+      subject: "mathematics",
+      uploader: "Admin",
+      downloads: 120,
+      uploadedAt: new Date("2025-10-01"),
+      fileUrl: "#",
+    },
+    {
+      title: "Physics Past Paper",
+      category: "past-papers",
+      subject: "physics",
+      uploader: "Admin",
+      downloads: 85,
+      uploadedAt: new Date("2025-09-28"),
+      fileUrl: "#",
+    },
+    {
+      title: "Biology Study Guide",
+      category: "guides",
+      subject: "biology",
+      uploader: "Admin",
+      downloads: 60,
+      uploadedAt: new Date("2025-09-30"),
+      fileUrl: "#",
+    },
+  ];
+
+  const recentGrid = document.getElementById("recent-documents");
+  const popularGrid = document.getElementById("popular-documents");
+  const searchInput = document.getElementById("search-input");
+  const categoryFilter = document.getElementById("category-filter");
+  const subjectFilter = document.getElementById("subject-filter");
+  const uploadBtn = document.getElementById("upload-btn");
+
+  // Map file extension to icon class
+  function getFileIcon(fileUrl) {
+    const ext = fileUrl.split('.').pop().toLowerCase();
+    switch(ext) {
+      case 'pdf': return 'fas fa-file-pdf pdf';
+      case 'doc':
+      case 'docx': return 'fas fa-file-word word';
+      case 'ppt':
+      case 'pptx': return 'fas fa-file-powerpoint ppt';
+      case 'jpg':
+      case 'jpeg':
+      case 'png': return 'fas fa-file-image image';
+      case 'txt': return 'fas fa-file-alt text';
+      default: return 'fas fa-file';
+    }
+  }
+
+  function renderSections() {
+    const filteredDocs = documents.filter(d => d.visible !== false);
+
+    // Recent (sorted by date desc)
+    const recent = [...filteredDocs].sort((a,b) => b.uploadedAt - a.uploadedAt);
+    recentGrid.innerHTML = recent.length 
+      ? recent.map(doc => documentCardHTML(doc)).join('')
+      : `<div class="no-results"><i class="fas fa-file-alt"></i><h3>No documents found</h3></div>`;
+
+    // Popular (sorted by downloads desc)
+    const popular = [...filteredDocs].sort((a,b) => b.downloads - a.downloads);
+    popularGrid.innerHTML = popular.length 
+      ? popular.map(doc => documentCardHTML(doc)).join('')
+      : `<div class="no-results"><i class="fas fa-file-alt"></i><h3>No documents found</h3></div>`;
+  }
+
+  function documentCardHTML(doc) {
+    const iconClass = getFileIcon(doc.fileUrl);
+    return `
+      <div class="document-card">
+        <div class="doc-thumbnail"><i class="${iconClass}"></i></div>
+        <div class="doc-title">${doc.title}</div>
+        <div class="doc-meta">
+          <span>${doc.subject}</span>
+          <span>${doc.category}</span>
+        </div>
+        <div class="doc-meta">
+          <span>By ${doc.uploader}</span>
+          <span>${doc.downloads} downloads</span>
+        </div>
+        <div class="doc-actions">
+          <a href="${doc.fileUrl}" class="btn-download" target="_blank" onclick="incrementDownloads('${doc.title}')">Download</a>
+          <button class="btn-view" onclick="viewDocument('${doc.title}','${doc.fileUrl}')">View</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function incrementDownloads(title) {
+    const doc = documents.find(d => d.title === title);
+    if (doc) {
+      doc.downloads += 1;
+      renderSections();
+    }
+  }
+
+  function viewDocument(title, fileUrl) {
+    document.getElementById("document-details").innerHTML = `
+      <h2>${title}</h2>
+      <iframe src="${fileUrl}" style="width:100%;height:400px;border:none;"></iframe>
+    `;
+    document.getElementById("document-modal").style.display = "block";
+  }
+
+  function hideDocumentModal() {
+    document.getElementById("document-modal").style.display = "none";
+  }
+
+  // Upload handler
+  uploadBtn.addEventListener("click", () => {
+    const title = document.getElementById("doc-title").value.trim();
+    const category = document.getElementById("doc-category").value;
+    const subject = document.getElementById("doc-subject").value;
+    const file = document.getElementById("doc-file").files[0];
+    if (!title || !file) return alert("Please enter a title and select a file.");
+
+    const newDoc = {
+      title,
+      category,
+      subject,
+      uploader: "You",
+      downloads: 0,
+      uploadedAt: new Date(),
+      fileUrl: URL.createObjectURL(file),
+    };
+
+    documents.push(newDoc);
+    renderSections();
+    alert("Document uploaded successfully!");
+  });
+
+  // Filters
+  function filterDocuments() {
+    const term = searchInput.value.toLowerCase();
+    const cat = categoryFilter.value;
+    const sub = subjectFilter.value;
+
+    documents.forEach(d => {
+      d.visible = (!cat || d.category === cat) &&
+                  (!sub || d.subject === sub) &&
+                  (!term || d.title.toLowerCase().includes(term));
+    });
+
+    renderSections();
+  }
+
+  searchInput.addEventListener("input", filterDocuments);
+  categoryFilter.addEventListener("change", filterDocuments);
+  subjectFilter.addEventListener("change", filterDocuments);
+
+  // Initial render
+  renderSections();
+</script>
+
+  </body>
+</html>
+>>>>>>> e5e825f28639e9ea07307309a76af16cfb497822

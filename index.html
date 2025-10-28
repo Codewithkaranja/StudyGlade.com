@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -950,3 +951,532 @@ input[type="file"]:hover {
 <script src="index.js"></script>
   </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard - StudyGlade</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    
+<style>
+/* =========================
+   Reset & Base Styles
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
+  color: #333;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* =========================
+   Navbar
+========================= */
+.navbar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+.nav-brand {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+.nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.nav-link:hover,
+.nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* =========================
+   Container
+========================= */
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem;
+}
+
+/* =========================
+   Dashboard Header
+========================= */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.dashboard-header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  color: #222;
+}
+.header-subtitle {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.8rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102,126,234,0.35);
+}
+.btn-secondary {
+  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(67,206,162,0.3);
+}
+.btn-secondary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(67,206,162,0.35);
+}
+
+/* =========================
+   Stats Section
+========================= */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+.stat-card::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.05);
+  top: 0;
+  left: -100%;
+  transform: skewX(-20deg);
+  transition: 0.5s;
+}
+
+.stat-card:hover::after {
+  left: 100%;
+}
+
+.stat-card h3 {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Add subtle badges for statuses */
+.status-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+}
+
+.status-pending {
+  background: #ffb74d;
+}
+.status-inprogress {
+  background: #64b5f6;
+}
+.status-completed {
+  background: #81c784;
+}
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 768px) {
+  .stats-section {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+#total-questions::before { content: "\f129"; } /* fa-question-circle */
+#pending-questions::before { content: "\f017"; } /* fa-clock */
+#completed-questions::before { content: "\f00c"; } /* fa-check */
+#total-earnings::before { content: "\f155"; } /* fa-dollar-sign */
+
+/* =========================
+   Dashboard Grid & Cards
+========================= */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.8rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+.card h3 {
+  margin-bottom: 1rem;
+  color: #444;
+}
+.questions-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* =========================
+   Section Titles
+========================= */
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem 0;
+  color: #333;
+}
+
+/* =========================
+   CTA Section
+========================= */
+.cta-section {
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  color: #fff;
+  text-align: center;
+  padding: 2.5rem;
+  border-radius: 16px;
+  margin: 2rem 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+.cta-section h2 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+.cta-section p {
+  font-size: 1.1rem;
+  margin-bottom: 1.2rem;
+}
+
+/* =========================
+   Footer
+========================= */
+.footer {
+  background: #222;
+  color: #ccc;
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.footer a {
+  color: #fff;
+  margin: 0 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.footer a:hover {
+  color: #667eea;
+}
+.footer-brand {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+/* =========================
+   Modal
+========================= */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+.modal-content {
+  background: #fff;
+  margin: 5% auto;
+  padding: 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  animation: fadeIn 0.3s ease;
+}
+.close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.6rem;
+  cursor: pointer;
+  color: #666;
+  transition: 0.3s;
+}
+.close:hover {
+  color: #222;
+}
+
+/* =========================
+   Forms
+========================= */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #444;
+}
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: 0.3s;
+}
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 6px rgba(102,126,234,0.3);
+}
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   File Inputs
+========================= */
+input[type="file"] {
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  background: #f9f9f9;
+  transition: 0.2s;
+}
+input[type="file"]:hover {
+  background: #fff;
+  border-color: #667eea;
+}
+
+/* =========================
+   Animations
+========================= */
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(-10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 768px) {
+  .stats-section { grid-template-columns: 1fr 1fr; }
+  .form-row { flex-direction: column; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+
+  </head>
+ <body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-brand">StudyGlade</div>
+    <div class="nav-links">
+      <a href="#" class="nav-link active">Dashboard</a>
+      <a href="tutor.html" class="nav-link" >Tutor</a>
+      <a href="documents.html" class="nav-link">Documents</a>
+      <a href="chat.html" class="nav-link">Chat</a>
+      <a href="#" id="logout-btn" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+      <h1>Welcome, <span id="student-name">Student</span></h1>
+      <p class="header-subtitle">Post questions, track progress, and download completed assignments.</p>
+      <button class="btn-primary" onclick="showQuestionModal()">Post New Question</button>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <h3>Total Questions</h3>
+        <div class="stat-value" id="total-questions">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Pending</h3>
+        <div class="stat-value" id="pending-questions">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>In Progress</h3>
+        <div class="stat-value" id="inprogress-questions">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Completed</h3>
+        <div class="stat-value" id="completed-questions">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Spent ($)</h3>
+        <div class="stat-value" id="total-spent">0</div>
+      </div>
+    </div>
+
+    <!-- Recent Assignments -->
+    <div class="section-title">My Assignments</div>
+    <div class="dashboard-grid" id="questions-list">
+      <!-- Dynamic questions will appear here -->
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+      <h2>Boost Your Learning!</h2>
+      <p>Explore study materials, upload notes, or post assignments to get expert help.</p>
+      <button class="btn-secondary" onclick="window.location.href='documents.html'">Explore Documents</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">StudyGlade</div>
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Support</a>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+      </div>
+      <p>&copy; 2025 StudyGlade. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Question Modal -->
+  <div id="question-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="hideQuestionModal()">&times;</span>
+      <h2>Post New Assignment / Question</h2>
+      <form id="question-form">
+        <div class="form-group">
+          <label for="question-title">Question Title</label>
+          <input type="text" id="question-title" required />
+        </div>
+        <div class="form-group">
+          <label for="question-description">Detailed Description</label>
+          <textarea id="question-description" rows="4" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="question-subject">Subject</label>
+            <input type="text" id="question-subject" required />
+          </div>
+          <div class="form-group">
+            <label for="question-topic">Topic</label>
+            <input type="text" id="question-topic" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="question-deadline">Deadline</label>
+            <input type="datetime-local" id="question-deadline" required />
+          </div>
+          <div class="form-group">
+            <label for="question-amount">Amount ($)</label>
+            <input type="number" id="question-amount" min="1" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="question-document">Attach Document</label>
+            <input type="file" id="question-document" accept=".pdf,.doc,.docx,.ppt,.pptx" />
+          </div>
+          <div class="form-group">
+            <label for="question-image">Attach Image</label>
+            <input type="file" id="question-image" accept="image/*" />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Post Assignment</button>
+      </form>
+    </div>
+  </div>
+  
+</body>
+
+
+
+    <script src="./js/index.js"></script>
+  </body>
+</html>
+>>>>>>> e5e825f28639e9ea07307309a76af16cfb497822
