@@ -4,12 +4,13 @@
 const CONFIG = {
   API_BASE_URL: window.location.hostname === 'localhost' 
     ? 'http://localhost:3001/api' 
-    : 'https://your-backend-domain.com/api',
+    : 'https://https://studyglade-com.onrender.com/api',
   MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
   MIN_AMOUNT_PER_PAGE: 3,
   DEFAULT_ROWS_PER_PAGE: 5,
   APP_VERSION: '1.0.0'
 };
+
 
 // =========================
 // API Service Layer
@@ -466,6 +467,7 @@ postForm.addEventListener('submit', async (e) => {
 // =========================
 // Payment System
 // =========================
+
 function updateTotalAmount() {
   const pages = parseInt(numPagesInput.value) || 1;
   const minRequired = pages * CONFIG.MIN_AMOUNT_PER_PAGE;
@@ -478,20 +480,114 @@ function updateTotalAmount() {
 function openPaymentModal(question) {
   if (!question) return;
 
-  questionAmountInput.value = Math.max(question.amount || CONFIG.MIN_AMOUNT_PER_PAGE, CONFIG.MIN_AMOUNT_PER_PAGE);
+  questionAmountInput.value = Math.max(
+    question.amount || CONFIG.MIN_AMOUNT_PER_PAGE,
+    CONFIG.MIN_AMOUNT_PER_PAGE
+  );
   numPagesInput.value = 1;
   updateTotalAmount();
 
-  let paymentTitle = document.getElementById('payment-question-title');
+  let paymentTitle = document.getElementById("payment-question-title");
   if (!paymentTitle) {
-    paymentTitle = document.createElement('h3');
-    paymentTitle.id = 'payment-question-title';
-    paymentModal.querySelector('.modal-content').prepend(paymentTitle);
+    paymentTitle = document.createElement("h3");
+    paymentTitle.id = "payment-question-title";
+    paymentModal.querySelector(".modal-content").prepend(paymentTitle);
   }
   paymentTitle.textContent = question.title;
 
-  paymentModal.style.display = 'block';
+  // ✅ Add payment method selection if not already in modal
+  let methodsContainer = paymentModal.querySelector(".payment-methods");
+  if (!methodsContainer) {
+    methodsContainer = document.createElement("div");
+    methodsContainer.classList.add("payment-methods");
+    methodsContainer.innerHTML = `
+      <label><input type="radio" name="payment-method" value="card" checked> 💳 Card</label>
+      <label><input type="radio" name="payment-method" value="mpesa"> 📱 M-Pesa</label>
+      <button id="proceedPaymentBtn" class="pay-btn">Proceed to Pay</button>
+    `;
+    paymentModal
+      .querySelector(".modal-content form")
+      .appendChild(methodsContainer);
+  }
+
+  paymentModal.style.display = "block";
 }
+
+// =========================
+// 💳 / 📱 Unified Payment Handler
+// =========================
+document.addEventListener("click", async (e) => {
+  if (e.target && e.target.id === "proceedPaymentBtn") {
+    const selectedMethod = document.querySelector(
+      "input[name='payment-method']:checked"
+    ).value;
+
+    const amountText = totalAmountInput.value.replace("$", "").trim();
+    const amount = parseFloat(amountText);
+    const assignmentId = currentQuestion?.id || "GEN";
+
+    if (isNaN(amount) || amount <= 0) {
+      alert("❌ Invalid amount. Please check again.");
+      return;
+    }
+
+    if (selectedMethod === "mpesa") {
+      // 📱 M-PESA PAYMENT
+      const phone = prompt(
+        "📱 Enter your M-Pesa phone number (e.g. 254712345678):"
+      );
+      if (!phone) return alert("Please enter a valid phone number.");
+
+      try {
+        const res = await fetch(
+          "https://studyglade-backend.onrender.com/api/payments/mpesa",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, amount, assignmentId }),
+          }
+        );
+        const data = await res.json();
+
+        if (res.ok) {
+          alert(
+            `✅ Payment initiated!\nCheck your phone (${phone}) to complete it.`
+          );
+          console.log("M-Pesa response:", data);
+        } else {
+          alert(`❌ Payment failed: ${data.message || "Unknown error"}`);
+          console.error("M-Pesa Error:", data);
+        }
+      } catch (err) {
+        console.error("M-Pesa Fetch error:", err);
+        alert("Failed to connect to payment server.");
+      }
+    } else if (selectedMethod === "card") {
+      // 💳 STRIPE PAYMENT
+      try {
+        const res = await fetch(
+          "https://studyglade-backend.onrender.com/api/payments/create-payment-intent",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: amount * 100, currency: "usd" }),
+          }
+        );
+        const data = await res.json();
+
+        if (res.ok) {
+          alert("💳 Card payment flow coming soon (Stripe Checkout)");
+          console.log("Stripe PaymentIntent:", data);
+        } else {
+          alert("❌ Stripe error: " + (data.message || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("Stripe Fetch error:", err);
+        alert("Failed to connect to Stripe server.");
+      }
+    }
+  }
+});
 
 // =========================
 // Render Functions (Backend Ready)
@@ -894,49 +990,72 @@ function renderPaginationControls(page) {
 // =========================
 // Payment Form Submission
 // =========================
-const paymentForm = document.getElementById('payment-form');
-if (paymentForm) {
-  paymentForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    UIState.setLoading(true);
+// ✅ Handle payment form submission
+const paymentForm = document.getElementById("payment-form");
 
-    try {
-      const latestQuestion = dataStore.questions.find(q => 
-        q.student === dataStore.currentStudent && 
-        (q.status === 'pending' || q.status === 'Pending')
-      );
-      
-      if (latestQuestion) {
-        const amount = parseFloat(totalAmountInput.value.replace('$', '')) || CONFIG.MIN_AMOUNT_PER_PAGE;
-        latestQuestion.amount = amount;
-        latestQuestion.status = 'pending_payment';
+paymentForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-        if (dataStore.useBackend) {
-          // Backend payment flow
-          const paymentIntent = await apiService.createPaymentIntent(latestQuestion.id, amount);
-          // Here you would integrate with Stripe or other payment processor
-          // For now, we'll just update the status
-          await dataStore.saveQuestion(latestQuestion);
-          UIState.showSuccess('Payment processed successfully! Assignment posted.');
-        } else {
-          // Local storage fallback
-          await dataStore.saveQuestion(latestQuestion);
-          UIState.showSuccess('Payment successful! Assignment posted.');
-        }
+  if (!latestQuestion) {
+    UIState.showError("No assignment selected for payment.");
+    return;
+  }
+
+  const paymentMethod = document.querySelector(
+    'input[name="payment-method"]:checked'
+  )?.value;
+  const pages = parseInt(numPagesInput.value) || 1;
+  const baseAmount = parseFloat(questionAmountInput.value) || CONFIG.MIN_AMOUNT_PER_PAGE;
+  const totalAmount = pages * baseAmount;
+
+  try {
+    if (paymentMethod === "mpesa") {
+      // ✅ M-Pesa flow
+      const phone = prompt("Enter your M-Pesa phone number (07XXXXXXXX):");
+      if (!phone) {
+        UIState.showError("Phone number is required for M-Pesa payment.");
+        return;
       }
 
-      hidePaymentModal();
-      hideQuestionModal();
-      await renderQuestions();
-      updateStats();
+      const response = await apiService.request("/payments/mpesa", {
+        method: "POST",
+        body: JSON.stringify({
+          phone,
+          amount: totalAmount,
+          assignmentId: latestQuestion.id,
+        }),
+      });
 
-    } catch (error) {
-      UIState.showError('Payment failed: ' + error.message);
-    } finally {
-      UIState.setLoading(false);
+      UIState.showSuccess(
+        "✅ M-Pesa payment initiated. Complete on your phone."
+      );
+
+      latestQuestion.status = "paid";
+      await dataStore.saveQuestion(latestQuestion);
+    } else {
+      // 💳 Card payment flow (future Stripe integration)
+      const response = await apiService.request("/payments/stripe", {
+        method: "POST",
+        body: JSON.stringify({
+          amount: totalAmount * 100, // convert to cents for Stripe
+          currency: "usd",
+          assignmentId: latestQuestion.id,
+        }),
+      });
+
+      UIState.showSuccess("💳 Payment initiated successfully.");
+      latestQuestion.status = "paid";
+      await dataStore.saveQuestion(latestQuestion);
     }
-  });
-}
+
+    hidePaymentModal();
+    await renderQuestions();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    UIState.showError("Payment failed: " + err.message);
+  }
+});
 
 // =========================
 // Enhanced Message System - Message Submission

@@ -4,7 +4,7 @@
   const CONFIG = {
     API_BASE_URL: window.location.hostname === 'localhost' 
       ? 'http://localhost:3001/api' 
-      : 'https://your-backend-domain.com/api',
+      : 'https://studyglade-com.onrender.com/api',
     DEFAULT_ROWS_PER_PAGE: 5,
     MAX_FILE_MB: 5,
     ALLOWED_TYPES: [
