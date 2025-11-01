@@ -1,23 +1,34 @@
 // tutor-dashboard.js - Backend Ready Version
 (() => {
   // ---------- Configuration ----------
-  const CONFIG = {
-    API_BASE_URL: window.location.hostname === 'localhost' 
-      ? 'http://localhost:3001/api' 
-      : 'https://studyglade-com.onrender.com/api',
-    DEFAULT_ROWS_PER_PAGE: 5,
-    MAX_FILE_MB: 5,
-    ALLOWED_TYPES: [
-      "application/pdf",
-      "image/jpeg", "image/png", "image/gif",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    ]
-  };
+ const CONFIG = {
+  // Base API URL depending on environment
+  API_BASE_URL: window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api'
+    : 'https://studyglade-com.onrender.com/api',
+
+  // Pagination
+  DEFAULT_ROWS_PER_PAGE: 5,
+
+  // File upload constraints
+  MAX_FILE_SIZE_MB: 5,
+  MAX_FILE_SIZE_BYTES: 5 * 1024 * 1024, // convenience property in bytes
+
+  // Allowed MIME types for file uploads
+  ALLOWED_FILE_TYPES: [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ]
+};
+
 
   // ---------- API Service ----------
   class TutorApiService {
@@ -74,41 +85,97 @@
       return this.request(`/tutor/assignments?${queryParams}`);
     }
 
-    async updateAssignment(id, updates) {
-      return this.request(`/tutor/assignments/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates)
-      });
-    }
+  async updateAssignment(id, updates) {
+  const token = localStorage.getItem('tutorToken');
+
+  const response = await fetch(`${this.baseURL}/tutor/assignments/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    let message = 'Failed to update assignment';
+    try {
+      const err = await response.json();
+      if (err?.message) message = err.message;
+    } catch (e) {}
+    throw new Error(message);
+  }
+
+  return response.json();
+}
+  
+
+
+
 
     async uploadAnswer(assignmentId, file) {
-      const formData = new FormData();
-      formData.append('answer', file);
-      formData.append('assignmentId', assignmentId);
+  const formData = new FormData();
+  formData.append('answer', file);
+  formData.append('assignmentId', assignmentId);
 
-      const response = await fetch(`${this.baseURL}/tutor/assignments/${assignmentId}/upload-answer`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('tutorToken')}`
-        },
-        body: formData
-      });
+  const token = localStorage.getItem('tutorToken');
 
-      if (!response.ok) throw new Error('Answer upload failed');
-      return response.json();
+  try {
+    const response = await fetch(`${this.baseURL}/tutor/assignments/${assignmentId}/upload-answer`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}` // no Content-Type here for FormData
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      let errorMsg = 'Answer upload failed';
+      try {
+        const errData = await response.json();
+        if (errData?.message) errorMsg = errData.message;
+      } catch (e) {}
+      throw new Error(errorMsg);
     }
 
-    // Message endpoints
-    async getMessages(assignmentId) {
-      return this.request(`/tutor/assignments/${assignmentId}/messages`);
-    }
+    return await response.json();
+  } catch (err) {
+    console.error('Upload error:', err);
+    throw err;
+  }
+}
 
-    async sendMessage(assignmentId, message) {
-      return this.request(`/tutor/assignments/${assignmentId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ text: message })
-      });
-    }
+
+    // ---------- Tutor Message Endpoints ----------
+async getMessages(assignmentId) {
+  return this.request(`/tutor/assignments/${assignmentId}/messages`);
+}
+
+async sendMessage(assignmentId, messageText, selectedFile = null) {
+  const formData = new FormData();
+  formData.append('assignmentId', assignmentId);
+  formData.append('text', messageText);
+  if (selectedFile) formData.append('file', selectedFile);
+
+  const token = localStorage.getItem('tutorToken'); // Use tutorToken for consistency
+
+  const response = await fetch(`${this.baseURL}/tutor/assignments/${assignmentId}/messages`
+, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to send message');
+  }
+
+  return await response.json();
+}
+
 
     // Report/Dispute endpoints
     async reportAssignment(assignmentId, reason) {
@@ -123,7 +190,7 @@
   class TutorDataStore {
     constructor() {
       this.api = new TutorApiService();
-      this.useBackend = false; // Enable when backend is ready
+      this.useBackend = true; // Enable when backend is ready
       this.assignments = [];
       this.students = [];
     }
@@ -133,160 +200,185 @@
     }
 
     async loadAssignments(filters = {}) {
-      if (this.useBackend) {
-        try {
-          const response = await this.api.getAssignments(filters);
-          this.assignments = response.assignments || [];
-          this.students = response.students || this.extractStudents();
-        } catch (error) {
-          console.warn('Failed to load from backend, using local storage');
-          this.useBackend = false;
-          this.loadFromLocalStorage();
-        }
-      } else {
-        this.loadFromLocalStorage();
-      }
+  try {
+    if (this.useBackend) {
+      const response = await this.api.getAssignments(filters);
+      this.assignments = (response.assignments || []).map(a => this.normalizeAssignment(a));
+      this.students = response.students || this.extractStudents();
+    } else {
+      this.loadFromLocalStorage();
     }
+  } catch (error) {
+    console.warn('Failed to load assignments from backend, falling back to local storage', error);
+    this.useBackend = true;
+    this.loadFromLocalStorage();
+  }
+}
+
+async uploadAnswer(assignmentId, file) {
+  if (!file) throw new Error("No file selected for upload");
+
+  if (this.useBackend) {
+    return this.api.uploadAnswer(assignmentId, file);
+  } else {
+    const assignment = this.assignments.find(a => a.id == assignmentId);
+    if (!assignment) throw new Error("Assignment not found");
+
+    // Convert file to base64 for local storage
+    const reader = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+
+    assignment.answer_file = reader;
+    assignment.answer_url = reader; // Using base64 URL as fallback
+    assignment.status = "completed";
+    assignment.updated_at = new Date().toISOString();
+
+    localStorage.setItem("assignments", JSON.stringify(this.assignments));
+    return { success: true };
+  }
+}
 
     loadFromLocalStorage() {
-      const raw = JSON.parse(localStorage.getItem("questions")) || [];
+      const raw = JSON.parse(localStorage.getItem("assignments")) || [];
       this.assignments = raw.map(item => this.normalizeAssignment(item));
       this.students = this.extractStudents();
     }
 
-    normalizeAssignment(item) {
-      return {
-        id: item.id ?? (Date.now() + Math.floor(Math.random() * 10000)),
-        student_id: item.student_id,
-        student_name: item.student_name || item.studentName || item.student || "Unknown Student",
-        title: item.title || "Untitled",
-        description: item.description || item.question || "",
-        subject: item.subject || "",
-        topic: item.topic || "",
-        deadline: item.deadline,
-        amount: Number(item.amount) || 0,
-        status: item.status?.toLowerCase() || "pending",
-        created_at: item.created_at || item.postedAt || new Date().toISOString(),
-        updated_at: item.updated_at || new Date().toISOString(),
-        attachments: item.attachments || [item.file, item.doc, item.img].filter(Boolean).map(url => ({
-          url,
-          name: "Attachment",
-          type: this.getFileType(url)
-        })),
-        answer_url: item.answer_url || item.answerFile,
-        answer_file: item.answer_file
-      };
-    }
+  normalizeAssignment(item) {
+  const now = new Date().toISOString();
+  const attachments = (item.attachments || [
+    item.file,
+    item.doc,
+    item.img,
+    ...(Array.isArray(item.files) ? item.files : [])
+  ].filter(Boolean))
+    .map((att, i) => {
+      if (typeof att === 'string') return { url: att, name: `Attachment ${i + 1}`, type: this.getFileType(att) };
+      if (att?.url) return { url: att.url, name: att.name || `Attachment ${i + 1}`, type: att.type || this.getFileType(att.url) };
+      return null;
+    })
+    .filter(Boolean);
 
-    extractStudents() {
-      return [...new Set(this.assignments.map(a => a.student_name).filter(Boolean))];
-    }
+  return {
+    id: item.id ?? (Date.now() + Math.floor(Math.random() * 10000)),
+    student_id: item.student_id ?? item.studentId,
+    student_name: item.student_name || item.studentName || item.student || "Unknown Student",
+    title: item.title || item.assignmentTitle || "Untitled",
+    description: item.description || item.question || item.details || "",
+    subject: item.subject || "",
+    topic: item.topic || "",
+    deadline: item.deadline || item.dueDate || null,
+    amount: Number(item.amount ?? item.price ?? 0),
+    status: (typeof item.status === "string" ? item.status : "pending").toLowerCase(),
+    created_at: new Date(item.created_at || item.postedAt || item.createdAt || now).toISOString(),
+    updated_at: new Date(item.updated_at || item.updatedAt || now).toISOString(),
+    attachments,
+    answer_url: item.answer_url || item.answerFile || item.answer?.url || null,
+    answer_file: item.answer_file || item.answer?.file || null,
+    completed_at: item.completed_at || item.completedAt || null,
+    dispute_reason: item.dispute_reason || item.disputeReason || null
+  };
+}
 
-    getFileType(url) {
-      if (typeof url === 'string') {
-        if (url.includes('pdf')) return 'application/pdf';
-        if (url.match(/\.(jpg|jpeg|png|gif)/i)) return 'image';
-        if (url.match(/\.(doc|docx)/i)) return 'document';
-      }
-      return 'file';
-    }
 
-    async updateAssignment(id, updates) {
-      if (this.useBackend) {
-        try {
-          await this.api.updateAssignment(id, updates);
-          await this.loadAssignments(); // Reload fresh data
-        } catch (error) {
-          console.warn('Backend update failed, updating locally');
-          this.useBackend = false;
-          this.updateLocalAssignment(id, updates);
-        }
-      } else {
-        this.updateLocalAssignment(id, updates);
-      }
-    }
+extractStudents() {
+  return [...new Set(this.assignments.map(a => a.student_name).filter(Boolean))];
+}
 
-    updateLocalAssignment(id, updates) {
-      const allQuestions = JSON.parse(localStorage.getItem("questions")) || [];
-      const index = allQuestions.findIndex(q => q.id == id);
-      if (index !== -1) {
-        allQuestions[index] = { ...allQuestions[index], ...updates };
-        localStorage.setItem("questions", JSON.stringify(allQuestions));
-        this.loadFromLocalStorage();
-      }
-    }
+getFileType(url) {
+  if (typeof url !== 'string') return 'file';
+  const ext = url.split('.').pop()?.toLowerCase();
+  if (!ext) return 'file';
+  if (ext === 'pdf') return 'application/pdf';
+  if (['jpg','jpeg','png','gif'].includes(ext)) return 'image';
+  if (['doc','docx'].includes(ext)) return 'document';
+  if (['xls','xlsx'].includes(ext)) return 'spreadsheet';
+  if (['ppt','pptx'].includes(ext)) return 'presentation';
+  return 'file';
+}
 
-    async uploadAnswer(assignmentId, file) {
-      if (this.useBackend) {
-        try {
-          const result = await this.api.uploadAnswer(assignmentId, file);
-          await this.updateAssignment(assignmentId, {
-            status: 'completed',
-            answer_url: result.fileUrl,
-            completed_at: new Date().toISOString()
-          });
-          return result;
-        } catch (error) {
-          throw error;
-        }
-      } else {
-        // Local storage fallback - convert to base64
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64Data = reader.result;
-            this.updateLocalAssignment(assignmentId, {
-              status: 'completed',
-              answerFile: base64Data,
-              completedAt: new Date().toISOString()
-            });
-            resolve({ fileUrl: base64Data });
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
-    }
 
-    async sendMessage(assignmentId, message) {
-      if (this.useBackend) {
-        return this.api.sendMessage(assignmentId, message);
-      } else {
-        // Local storage fallback
-        const assignment = this.assignments.find(a => a.id == assignmentId);
-        if (!assignment) throw new Error('Assignment not found');
+ async sendMessage(assignmentId, messageText, file = null) {
+  if (!messageText && !file) throw new Error("Cannot send empty message");
 
-        const tutorKey = `chat_${assignment.student_name.replace(/\s+/g, '_')}_${assignmentId}`;
-        const tutorMessages = JSON.parse(localStorage.getItem(tutorKey)) || [];
-        tutorMessages.push({ sender: "Tutor", text: message, ts: Date.now() });
-        localStorage.setItem(tutorKey, JSON.stringify(tutorMessages));
-        
-        return { success: true };
-      }
-    }
+  // 🔹 Backend mode
+  if (this.useBackend) {
+    return this.api.sendMessage(assignmentId, messageText, file);
+  }
 
-    async getMessages(assignmentId) {
-      if (this.useBackend) {
-        return this.api.getMessages(assignmentId);
-      } else {
-        const assignment = this.assignments.find(a => a.id == assignmentId);
-        if (!assignment) return [];
+  // 🔹 Local fallback
+  const assignment = this.assignments.find(a => a.id == assignmentId);
+  if (!assignment) throw new Error("Assignment not found");
 
-        const tutorKey = `chat_${assignment.student_name.replace(/\s+/g, '_')}_${assignmentId}`;
-        const studentKey = `messages_${assignmentId}`;
-        
-        const tutorMessages = JSON.parse(localStorage.getItem(tutorKey)) || [];
-        const studentMessages = JSON.parse(localStorage.getItem(studentKey)) || [];
-        
-        return [...tutorMessages, ...studentMessages.map(msg => ({
-          sender: msg.sender === 'student' ? assignment.student_name : 'Tutor',
-          text: msg.text,
-          sent_at: new Date(msg.timestamp || msg.ts).toISOString(),
-          is_tutor: msg.sender !== 'student'
-        }))].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
-      }
+  const key = `messages_${assignmentId}`;
+  const messages = JSON.parse(localStorage.getItem(key)) || [];
+
+  const newMessage = {
+    sender: "Tutor",
+    text: messageText,
+    is_tutor: true,
+    ts: Date.now()
+  };
+
+  // Handle file uploads (convert to base64)
+  if (file) {
+    try {
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      newMessage.file = base64Data;
+      newMessage.file_name = file.name;
+      newMessage.file_type = file.type;
+    } catch (err) {
+      console.error("File conversion failed:", err);
     }
   }
+
+  messages.push(newMessage);
+  localStorage.setItem(key, JSON.stringify(messages));
+
+  return { success: true, message: newMessage };
+}
+
+
+  async getMessages(assignmentId) {
+  const assignment = this.assignments.find(a => a.id == assignmentId);
+  if (!assignment) return [];
+
+  if (this.useBackend) {
+    // Load messages directly from backend API
+    return this.api.getMessages(assignmentId);
+  } else {
+    // Unified localStorage key for all messages (tutor + student)
+    const key = `messages_${assignmentId}`;
+    const allMessages = JSON.parse(localStorage.getItem(key)) || [];
+
+    // Normalize message objects
+    const normalized = allMessages.map(m => ({
+      sender: m.is_tutor ? "You" : (assignment.student_name || "Student"),
+      text: m.text,
+      sent_at: new Date(m.timestamp || m.ts || Date.now()).toISOString(),
+      is_tutor: m.is_tutor ?? (m.sender === "tutor"),
+      file_url: m.file || m.file_url || null,
+      file_name: m.fileName || m.file_name || null,
+      file_type: m.fileType || m.file_type || null
+    }));
+
+    // Sort chronologically
+    return normalized.sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
+  }
+}
+  }
+
+
 
   // ---------- Global Instances ----------
   const tutorDataStore = new TutorDataStore();
@@ -341,10 +433,12 @@
   
   function validateFile(file) {
     if (!file) return { ok: false, msg: "No file selected." };
-    if (file.size > CONFIG.MAX_FILE_MB * 1024 * 1024) {
-      return { ok: false, msg: `File must be < ${CONFIG.MAX_FILE_MB} MB.` };
-    }
-    if (!CONFIG.ALLOWED_TYPES.includes(file.type)) {
+    if (file.size > CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024) {
+  return { ok: false, msg: `File must be < ${CONFIG.MAX_FILE_SIZE_MB} MB.` };
+}
+
+    if (!CONFIG.ALLOWED_FILE_TYPES.includes(file.type))
+ {
       return { ok: false, msg: "File type not allowed. Allowed: PDF, Word, Excel, PowerPoint, images." };
     }
     return { ok: true };
@@ -591,47 +685,68 @@
     }
   }
 
-  function renderMessages(messages) {
-    const div = $("message-history");
-    div.innerHTML = messages.map(m => {
-      const isTutor = m.is_tutor || m.sender === "Tutor";
-      const senderName = isTutor ? "You" : m.sender;
-      
-      return `
-        <div class="message-bubble ${isTutor ? 'message-sent' : 'message-received'}">
-          <div class="meta">
-            <span>${senderName}</span>
-            <span>${new Date(m.sent_at || m.ts).toLocaleTimeString()}</span>
-          </div>
-          <div class="text">${escapeHtml(m.text)}</div>
+function renderMessages(messages) {
+  const div = $("message-history");
+  if (!div) return;
+
+  div.innerHTML = messages.map(m => {
+    const isTutor = m.is_tutor || m.sender === "Tutor";
+    const senderName = isTutor ? "You" : m.sender;
+
+    let fileHtml = "";
+    if (m.file_url) {
+      const fileName = att.name || att.url.split('/').pop() || `Attachment_${i+1}`;
+
+      fileHtml = `
+        <div class="message-file">
+          <a href="${m.file_url}" target="_blank" download="${fileName}">
+            📎 ${fileName}
+          </a>
         </div>
       `;
-    }).join("");
-    
-    div.scrollTop = div.scrollHeight;
-  }
+    }
 
-  function setupMessageForm() {
-    const form = $("message-form");
-    if (!form) return;
-    
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const input = $("message-input");
-      if (!input) return;
-      
-      const message = input.value.trim();
-      if (!message) return;
+    return `
+      <div class="message-bubble ${isTutor ? 'message-sent' : 'message-received'}">
+        <div class="meta">
+          <span>${senderName}</span>
+          <span>${new Date(m.sent_at || m.ts).toLocaleTimeString()}</span>
+        </div>
+        <div class="text">${escapeHtml(m.text || "")}</div>
+        ${fileHtml}
+      </div>
+    `;
+  }).join("");
 
-      try {
-        await tutorDataStore.sendMessage(currentChat.id, message);
-        input.value = "";
-        await loadChatMessages(currentChat.id);
-      } catch (error) {
-        UIState.showError('Failed to send message: ' + error.message);
-      }
-    });
-  }
+  div.scrollTop = div.scrollHeight;
+}
+
+ // ---------- Enhanced Messaging System ----------
+function setupMessageForm() {
+  const form = $("message-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = $("message-input");
+    const fileInput = $("message-file"); // Make sure your form has this input
+    if (!input && !fileInput) return;
+
+    const messageText = input?.value.trim() || "";
+    const file = fileInput?.files?.[0] || null;
+
+    if (!messageText && !file) return; // Nothing to send
+
+    try {
+      await tutorDataStore.sendMessage(currentChat.id, messageText, file);
+      input.value = "";
+      if (fileInput) fileInput.value = "";
+      await loadChatMessages(currentChat.id);
+    } catch (error) {
+      UIState.showError('Failed to send message: ' + error.message);
+    }
+  });
+}
 
   // ---------- View Details + File Preview ----------
   async function viewAssignmentById(id) {
@@ -828,57 +943,76 @@
       if (e.target && (e.target.id === 'toggle-dark' || e.target.closest('#toggle-dark'))) {
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
-        localStorage.setItem('darkMode', isDark);
+        localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+
         e.preventDefault();
       }
     });
     
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode === 'true') {
-      document.body.classList.add('dark-mode');
-    }
+   const savedDark = localStorage.getItem('darkMode') === 'true';
+if (savedDark) document.body.classList.add('dark-mode');
+
   }
 
   // ---------- Initial Boot ----------
-  async function boot() {
-    const tutorToken = localStorage.getItem("tutorToken");
-    if (!tutorToken && !window.location.pathname.includes('index.html')) {
-      window.location.href = "index.html";
-      return;
-    }
-    
-    try {
-      await tutorDataStore.initialize();
-      ensureToolbar();
-      setupToolbarListeners();
-      setupUploadForm();
-      setupMessageForm();
-      setupDarkModeToggle();
-      updateStudentFilter();
-      await renderAssignments();
+ async function boot() {
+  const tutorToken = localStorage.getItem("tutorToken");
+  const onLoginPage = window.location.pathname.includes("index.html");
 
-      // Modal close handlers
-      window.addEventListener("click", (e) => {
-        ["upload-modal","assignment-details-modal","message-modal"].forEach(id => {
-          const dlg = $(id);
-          if (dlg && e.target === dlg) dlg.style.display = "none";
-        });
-      });
-
-      // Logout handler
-      const logoutBtn = $("logout-btn");
-      if (logoutBtn) logoutBtn.addEventListener("click", () => {
-        if (confirm("Are you sure you want to logout?")) {
-          localStorage.removeItem('tutorToken');
-          window.location.href = "index.html";
-        }
-      });
-
-    } catch (error) {
-      console.error('Tutor dashboard initialization failed:', error);
-      UIState.showError('Failed to initialize tutor dashboard');
-    }
+  // 🔐 Redirect if not logged in
+  if (!tutorToken && !onLoginPage) {
+    window.location.href = "index.html";
+    return;
   }
+
+  try {
+    // 🧩 Initialize data
+    await tutorDataStore.initialize();
+
+    // 🧰 Setup all UI event handlers
+    ensureToolbar();
+    setupToolbarListeners();
+    setupUploadForm();
+    setupMessageForm();
+    setupDarkModeToggle();
+    updateStudentFilter();
+
+    // 🎯 Render dashboard content
+    await renderAssignments();
+
+    // 🪟 Handle modal close clicks
+    window.addEventListener("click", (e) => {
+      ["upload-modal", "assignment-details-modal", "message-modal"].forEach((id) => {
+        const dlg = $(id);
+        if (dlg && e.target === dlg) dlg.style.display = "none";
+      });
+    });
+
+    // 🚪 Logout handler
+    const logoutBtn = $("logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        const confirmLogout = confirm("Are you sure you want to logout?");
+        if (!confirmLogout) return;
+
+        localStorage.removeItem("tutorToken");
+        UIState.showLoading("Logging out...");
+        await new Promise((res) => setTimeout(res, 500)); // graceful UX delay
+        window.location.href = "index.html";
+      });
+    }
+
+    console.log("%cTutor Dashboard initialized successfully ✅", "color: #00c853");
+
+  } catch (error) {
+    console.error("Tutor dashboard initialization failed:", error);
+    UIState.showError("⚠️ Failed to initialize tutor dashboard. Please reload.");
+  }
+}
+
+// ✅ Run boot when DOM is ready
+document.addEventListener("DOMContentLoaded", boot);
+
 
   // ---------- Global Exposes ----------
   window.viewAssignmentById = viewAssignmentById;
@@ -901,4 +1035,4 @@
 
   // Final boot
   boot();
-})();
+})() 

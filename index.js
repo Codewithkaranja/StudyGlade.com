@@ -2,16 +2,40 @@
 // Configuration
 // =========================
 const CONFIG = {
-  API_BASE_URL: window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001/api' 
-    : 'https://https://studyglade-com.onrender.com/api',
-  MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
-  MIN_AMOUNT_PER_PAGE: 3,
+  // Base API URL depending on environment
+  API_BASE_URL: window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api'
+    : 'https://studyglade-com.onrender.com/api',
+
+  // Pagination
   DEFAULT_ROWS_PER_PAGE: 5,
-  APP_VERSION: '1.0.0'
+
+  // File upload constraints
+  MAX_FILE_SIZE_MB: 5,
+  MAX_FILE_SIZE_BYTES: 5 * 1024 * 1024,
+
+  // Allowed MIME types
+  ALLOWED_FILE_TYPES: [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ],
+
+  // ✅ Minimum amount per page for assignments
+  MIN_AMOUNT_PER_PAGE: 3
 };
 
 
+
+// =========================
+// API Service Layer
 // =========================
 // API Service Layer
 // =========================
@@ -61,7 +85,6 @@ class ApiService {
   }
 
   showError(message) {
-    // Simple error display - you can enhance this with toast notifications
     alert(`Error: ${message}`);
   }
 
@@ -78,6 +101,16 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(studentData)
     });
+  }
+
+  // Get current logged-in user
+  async getCurrentUser() {
+    try {
+      return await this.request('/auth/me'); // Make sure your backend has /auth/me endpoint
+    } catch (err) {
+      console.warn('No current user found or not logged in.');
+      return null;
+    }
   }
 
   // Assignment endpoints
@@ -117,17 +150,99 @@ class ApiService {
     return response.json();
   }
 
-  // Message endpoints
-  async getMessages(assignmentId) {
+// ---------- Message Endpoints ----------
+async getMessages(assignmentId) {
+  // 🔹 Backend mode
+  if (this.useBackend) {
     return this.request(`/assignments/${assignmentId}/messages`);
   }
 
-  async sendMessage(assignmentId, message) {
-    return this.request(`/assignments/${assignmentId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ text: message })
+  // 🔹 Local mode
+  const assignment = this.assignments.find(a => a.id == assignmentId);
+  if (!assignment) return [];
+
+  const key = `messages_${assignmentId}`; // ✅ unified for both tutor & student
+  const messages = JSON.parse(localStorage.getItem(key)) || [];
+
+  // Normalize and shape data for UI
+  return messages.map(msg => ({
+    sender: msg.is_tutor ? "Tutor" : (assignment.student_name || "Student"),
+    text: msg.text || "",
+    sent_at: new Date(msg.ts || msg.timestamp || Date.now()).toISOString(),
+    is_tutor: !!msg.is_tutor,
+    file_url: msg.file || msg.file_url || null,
+    file_name: msg.file_name || msg.fileName || null,
+    file_type: msg.file_type || msg.fileType || null
+  })).sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
+}
+
+
+async sendMessage(assignmentId, messageText, selectedFile = null) {
+  if (!messageText && !selectedFile) throw new Error("Cannot send empty message");
+
+  // 🔹 If backend is active
+  if (this.useBackend) {
+    const formData = new FormData();
+    formData.append("assignmentId", assignmentId);
+    formData.append("text", messageText);
+    if (selectedFile) formData.append("file", selectedFile);
+
+    const token = localStorage.getItem("studentToken");
+
+    const response = await fetch(`${this.baseURL}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
     });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to send message");
+    }
+
+    return await response.json();
   }
+
+  // 🔹 Local storage fallback
+  const assignment = this.assignments.find(a => a.id == assignmentId);
+  if (!assignment) throw new Error("Assignment not found");
+
+  const key = `messages_${assignmentId}`; // ✅ unified key
+  const messages = JSON.parse(localStorage.getItem(key)) || [];
+
+  const newMessage = {
+    sender: assignment.student_name || "Student",
+    text: messageText,
+    is_tutor: false,
+    ts: Date.now()
+  };
+
+  // Handle file upload as base64
+  if (selectedFile) {
+    try {
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
+      newMessage.file = base64Data;
+      newMessage.file_name = selectedFile.name;
+      newMessage.file_type = selectedFile.type;
+    } catch (err) {
+      console.error("File conversion failed:", err);
+    }
+  }
+
+  messages.push(newMessage);
+  localStorage.setItem(key, JSON.stringify(messages));
+
+  return { success: true, message: newMessage };
+}
+
+
+
 
   // Payment endpoints
   async createPaymentIntent(assignmentId, amount) {
@@ -144,6 +259,7 @@ class ApiService {
     });
   }
 }
+
 
 // =========================
 // Data Store with Backend Fallback
@@ -380,8 +496,9 @@ const Validators = {
   },
 
   file(file) {
-    if (file.size > CONFIG.MAX_FILE_SIZE) {
-      return `File must be smaller than ${CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB`;
+    if (file.size > CONFIG.MAX_FILE_SIZE_BYTES) {
+
+      return `File must be smaller than ${CONFIG.MAX_FILE_SIZE_MB}MB`;
     }
     return null;
   }
@@ -436,7 +553,8 @@ postForm.addEventListener('submit', async (e) => {
       status: 'pending',
       student: dataStore.currentStudent,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      views: 0  // initialize views
     };
 
     // Save assignment
@@ -477,9 +595,20 @@ function updateTotalAmount() {
   totalAmountInput.value = `$${totalToPay.toFixed(2)}`;
 }
 
+
+
+// =========================
+// ================================
+// 💰 Open Payment Modal & Unified Handler
+// ================================
+
 function openPaymentModal(question) {
   if (!question) return;
 
+  // Set the global current question
+  window.currentQuestion = question;
+
+  // Initialize inputs
   questionAmountInput.value = Math.max(
     question.amount || CONFIG.MIN_AMOUNT_PER_PAGE,
     CONFIG.MIN_AMOUNT_PER_PAGE
@@ -487,107 +616,115 @@ function openPaymentModal(question) {
   numPagesInput.value = 1;
   updateTotalAmount();
 
+  // Modal title
   let paymentTitle = document.getElementById("payment-question-title");
   if (!paymentTitle) {
     paymentTitle = document.createElement("h3");
     paymentTitle.id = "payment-question-title";
-    paymentModal.querySelector(".modal-content").prepend(paymentTitle);
+    paymentModal.querySelector(".modal-content")?.prepend(paymentTitle);
   }
   paymentTitle.textContent = question.title;
 
-  // ✅ Add payment method selection if not already in modal
+  // Payment methods container
   let methodsContainer = paymentModal.querySelector(".payment-methods");
   if (!methodsContainer) {
     methodsContainer = document.createElement("div");
     methodsContainer.classList.add("payment-methods");
     methodsContainer.innerHTML = `
-      <label><input type="radio" name="payment-method" value="card" checked> 💳 Card</label>
-      <label><input type="radio" name="payment-method" value="mpesa"> 📱 M-Pesa</label>
+      <label>
+        <input type="radio" name="payment-method" value="card" checked> 💳 Card
+      </label>
+      <label>
+        <input type="radio" name="payment-method" value="mpesa"> 📱 M-Pesa
+      </label>
       <button id="proceedPaymentBtn" class="pay-btn">Proceed to Pay</button>
     `;
-    paymentModal
-      .querySelector(".modal-content form")
-      .appendChild(methodsContainer);
+    const formEl = paymentModal.querySelector(".modal-content form");
+    if (formEl) formEl.appendChild(methodsContainer);
   }
 
+  // Show modal
   paymentModal.style.display = "block";
 }
 
-// =========================
+// ================================
 // 💳 / 📱 Unified Payment Handler
-// =========================
+// ================================
+
 document.addEventListener("click", async (e) => {
-  if (e.target && e.target.id === "proceedPaymentBtn") {
-    const selectedMethod = document.querySelector(
-      "input[name='payment-method']:checked"
-    ).value;
+  if (e.target?.id !== "proceedPaymentBtn") return;
 
-    const amountText = totalAmountInput.value.replace("$", "").trim();
-    const amount = parseFloat(amountText);
-    const assignmentId = currentQuestion?.id || "GEN";
+  const btn = e.target;
+  btn.disabled = true; // Prevent double clicks
 
-    if (isNaN(amount) || amount <= 0) {
-      alert("❌ Invalid amount. Please check again.");
+  const selectedMethod = document.querySelector(
+    "input[name='payment-method']:checked"
+  )?.value;
+
+  const amount = parseFloat(totalAmountInput.value.replace("$", "").trim());
+  const assignmentId = currentQuestion?.id;
+
+  if (!currentQuestion || isNaN(amount) || amount <= 0) {
+    alert("❌ Invalid assignment or amount.");
+    btn.disabled = false;
+    return;
+  }
+
+  const mpesaEndpoint = `${CONFIG.API_BASE_URL}/payments/mpesa`;
+  const stripeEndpoint = `${CONFIG.API_BASE_URL}/payments/create-payment-intent`;
+
+  if (selectedMethod === "mpesa") {
+    let phone = prompt("📱 Enter your M-Pesa number (e.g. 254712345678):")?.trim();
+    if (!phone || !/^254\d{9}$/.test(phone)) {
+      alert("❌ Invalid phone number.");
+      btn.disabled = false;
       return;
     }
 
-    if (selectedMethod === "mpesa") {
-      // 📱 M-PESA PAYMENT
-      const phone = prompt(
-        "📱 Enter your M-Pesa phone number (e.g. 254712345678):"
-      );
-      if (!phone) return alert("Please enter a valid phone number.");
+    try {
+      const res = await fetch(mpesaEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, amount, assignmentId }),
+      });
+      const data = await res.json();
 
-      try {
-        const res = await fetch(
-          "https://studyglade-backend.onrender.com/api/payments/mpesa",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone, amount, assignmentId }),
-          }
-        );
-        const data = await res.json();
-
-        if (res.ok) {
-          alert(
-            `✅ Payment initiated!\nCheck your phone (${phone}) to complete it.`
-          );
-          console.log("M-Pesa response:", data);
-        } else {
-          alert(`❌ Payment failed: ${data.message || "Unknown error"}`);
-          console.error("M-Pesa Error:", data);
-        }
-      } catch (err) {
-        console.error("M-Pesa Fetch error:", err);
-        alert("Failed to connect to payment server.");
+      if (res.ok) {
+        alert(`✅ Payment initiated! Check ${phone} to complete it.`);
+        currentQuestion.status = "Pending Payment";
+      } else {
+        alert(`❌ Payment failed: ${data.message || "Unknown error"}`);
       }
-    } else if (selectedMethod === "card") {
-      // 💳 STRIPE PAYMENT
-      try {
-        const res = await fetch(
-          "https://studyglade-backend.onrender.com/api/payments/create-payment-intent",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount: amount * 100, currency: "usd" }),
-          }
-        );
-        const data = await res.json();
+      console.log("M-Pesa response:", data);
+    } catch (err) {
+      console.error("M-Pesa Fetch error:", err);
+      alert("❌ Failed to connect to payment server.");
+    }
+  } else if (selectedMethod === "card") {
+    try {
+      const res = await fetch(stripeEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amount * 100, currency: "usd" }),
+      });
+      const data = await res.json();
 
-        if (res.ok) {
-          alert("💳 Card payment flow coming soon (Stripe Checkout)");
-          console.log("Stripe PaymentIntent:", data);
-        } else {
-          alert("❌ Stripe error: " + (data.message || "Unknown error"));
-        }
-      } catch (err) {
-        console.error("Stripe Fetch error:", err);
-        alert("Failed to connect to Stripe server.");
+      if (res.ok) {
+        alert("💳 Card payment flow coming soon (Stripe Checkout)");
+        console.log("Stripe PaymentIntent:", data);
+      } else {
+        alert("❌ Stripe error: " + (data.message || "Unknown error"));
       }
+    } catch (err) {
+      console.error("Stripe Fetch error:", err);
+      alert("❌ Failed to connect to Stripe server.");
     }
   }
+
+  btn.disabled = false; // Re-enable button
+  renderQuestions(); // Update UI in case status changed
 });
+
 
 // =========================
 // Render Functions (Backend Ready)
@@ -595,9 +732,11 @@ document.addEventListener("click", async (e) => {
 async function renderQuestions() {
   if (!questionsList) return;
 
+  // ✅ Load questions once
   await dataStore.loadQuestions(); // Ensure fresh data
+  const questions = dataStore.questions; // Cache in local variable
 
-  questionsList.innerHTML = dataStore.questions.map(q => `
+  questionsList.innerHTML = questions.map(q => `
     <div class="question-card">
       <div class="question-header">
         <h4>${q.title}</h4>
@@ -628,8 +767,9 @@ async function renderQuestions() {
     </div>
   `).join('');
 
-  updateStats();
+  updateStats(); // ✅ Only called once after rendering
 }
+
 
 function updateStats() {
   const all = dataStore.questions;
@@ -678,7 +818,8 @@ async function openMessageModal(questionId) {
       messages = [...studentMessages, ...tutorMessages.map(msg => ({
         text: msg.text,
         sender: msg.sender === 'Tutor' ? 'tutor' : 'student',
-        timestamp: new Date(msg.ts).toISOString()
+        timestamp: new Date(msg.timestamp || msg.timestamp).toISOString()
+
       }))].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     }
 
@@ -694,19 +835,22 @@ function renderMessages(messages) {
   const messageHistory = document.getElementById('message-history');
   messageHistory.innerHTML = messages.map(msg => {
     const isStudent = msg.sender === 'student';
+    const fileHTML = msg.file ? `<a href="${msg.file}" target="_blank" class="file-attachment">📎 ${msg.file.split('/').pop()}</a>` : '';
     return `
       <div class="message-bubble ${isStudent ? 'message-sent' : 'message-received'}">
         <div class="meta">
           <span>${isStudent ? 'You' : 'Tutor'}</span>
-          <span>${new Date(msg.timestamp || msg.sent_at).toLocaleTimeString()}</span>
+          <span>${new Date(msg.timestamp).toLocaleTimeString()}</span>
         </div>
         <div class="text">${msg.text}</div>
+        ${fileHTML}
       </div>
     `;
   }).join('');
   
   messageHistory.scrollTop = messageHistory.scrollHeight;
 }
+
 
 // =========================
 // Event Listeners & Initialization
@@ -840,6 +984,14 @@ function showAssignmentDetails(id) {
     return;
   }
 
+  // ✅ Initialize views if missing, then increment
+  question.views = (question.views || 0) + 1;
+
+  // Optional: persist the updated question if you have a save function
+  if (typeof dataStore.saveQuestion === 'function') {
+    dataStore.saveQuestion(question);
+  }
+
   document.getElementById('details-title').textContent = question.title;
   document.getElementById('details-subject').textContent = question.subject || '—';
   document.getElementById('details-topic').textContent = question.topic || '—';
@@ -848,10 +1000,15 @@ function showAssignmentDetails(id) {
   document.getElementById('details-amount').textContent = question.amount || 0;
   document.getElementById('details-description').textContent = question.description || 'No description provided';
 
+  // ✅ Display views
+  const viewsEl = document.getElementById('details-views');
+  if (viewsEl) {
+    viewsEl.textContent = `Views: ${question.views}`;
+  }
+
   const filesDiv = document.getElementById('details-file-links');
   filesDiv.innerHTML = '';
   
-  // Handle attachments from backend format
   if (question.attachments && question.attachments.length > 0) {
     question.attachments.forEach(att => {
       const a = document.createElement('a');
@@ -864,7 +1021,6 @@ function showAssignmentDetails(id) {
       filesDiv.appendChild(a);
     });
   } else {
-    // Fallback to old format
     if (question.doc) {
       const a = document.createElement('a');
       a.href = question.doc;
@@ -893,6 +1049,7 @@ function showAssignmentDetails(id) {
 
   assignmentDetailsModal.style.display = 'block';
 }
+
 
 function closeDetailsModal() { 
   assignmentDetailsModal.style.display = 'none'; 
@@ -996,7 +1153,7 @@ const paymentForm = document.getElementById("payment-form");
 paymentForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!latestQuestion) {
+  if (!currentQuestion) {
     UIState.showError("No assignment selected for payment.");
     return;
   }
@@ -1022,7 +1179,7 @@ paymentForm.addEventListener("submit", async (e) => {
         body: JSON.stringify({
           phone,
           amount: totalAmount,
-          assignmentId: latestQuestion.id,
+          assignmentId: currentQuestion.id,
         }),
       });
 
@@ -1030,8 +1187,8 @@ paymentForm.addEventListener("submit", async (e) => {
         "✅ M-Pesa payment initiated. Complete on your phone."
       );
 
-      latestQuestion.status = "paid";
-      await dataStore.saveQuestion(latestQuestion);
+      currentQuestion.status = "paid";
+      await dataStore.saveQuestion(currentQuestion);
     } else {
       // 💳 Card payment flow (future Stripe integration)
       const response = await apiService.request("/payments/stripe", {
@@ -1039,13 +1196,13 @@ paymentForm.addEventListener("submit", async (e) => {
         body: JSON.stringify({
           amount: totalAmount * 100, // convert to cents for Stripe
           currency: "usd",
-          assignmentId: latestQuestion.id,
+          assignmentId: currentQuestion.id,
         }),
       });
 
       UIState.showSuccess("💳 Payment initiated successfully.");
-      latestQuestion.status = "paid";
-      await dataStore.saveQuestion(latestQuestion);
+      currentQuestion.status = "paid";
+      await dataStore.saveQuestion(currentQuestion);
     }
 
     hidePaymentModal();
@@ -1065,9 +1222,15 @@ if (messageForm) {
   messageForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const messageInput = document.getElementById('message-input');
+    const fileInput = document.getElementById('message-file');
+
     const messageText = messageInput.value.trim();
-    
-    if (!messageText) return;
+    const selectedFile = fileInput.files[0] || null;
+
+    if (!messageText && !selectedFile) {
+      UIState.showError('Please enter a message or select a file.');
+      return;
+    }
 
     const assignmentId = messageInput.getAttribute('data-assignment-id');
     if (!assignmentId) {
@@ -1077,8 +1240,7 @@ if (messageForm) {
 
     try {
       if (dataStore.useBackend) {
-        await apiService.sendMessage(assignmentId, messageText);
-        // Reload messages from backend
+        await apiService.sendMessage(assignmentId, messageText, selectedFile);
         const messages = await apiService.getMessages(assignmentId);
         renderMessages(messages);
       } else {
@@ -1089,43 +1251,44 @@ if (messageForm) {
         const studentKey = `messages_${assignmentId}`;
         const tutorKey = `chat_${question.student.replace(/\s+/g, '_')}_${assignmentId}`;
         
-        // Save in student format
         const studentMessages = JSON.parse(localStorage.getItem(studentKey)) || [];
         studentMessages.push({
-          text: messageText,
+          text: messageText || (selectedFile ? `📎 ${selectedFile.name}` : ''),
+          file: selectedFile ? URL.createObjectURL(selectedFile) : null,
           sender: 'student',
           timestamp: new Date().toISOString()
         });
         localStorage.setItem(studentKey, JSON.stringify(studentMessages));
 
-        // Also save in tutor's expected format
         const tutorMessages = JSON.parse(localStorage.getItem(tutorKey)) || [];
         tutorMessages.push({
           sender: question.student,
-          text: messageText,
-          ts: Date.now()
+          text: messageText || (selectedFile ? `📎 ${selectedFile.name}` : ''),
+          ts: Date.now(),
+          file: selectedFile ? URL.createObjectURL(selectedFile) : null
         });
         localStorage.setItem(tutorKey, JSON.stringify(tutorMessages));
 
-        // Reload and display messages
         const allMessages = [...studentMessages, ...tutorMessages.map(msg => ({
           text: msg.text,
           sender: msg.sender === 'Tutor' ? 'tutor' : 'student',
-          timestamp: new Date(msg.ts).toISOString()
+          timestamp: new Date(msg.timestamp || msg.timestamp).toISOString(),
+          file: msg.file || null
         }))].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
+
         renderMessages(allMessages);
 
-        // Simulate tutor reply
         setTimeout(() => simulateTutorReply(assignmentId, question.student), 2000);
       }
 
       messageInput.value = '';
+      fileInput.value = '';
     } catch (error) {
       UIState.showError('Failed to send message: ' + error.message);
     }
   });
 }
+
 
 function simulateTutorReply(questionId, studentName) {
   if (dataStore.useBackend) return; // No simulation in backend mode

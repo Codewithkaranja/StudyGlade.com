@@ -4,7 +4,7 @@
 const CONFIG = {
   API_BASE_URL: window.location.hostname === 'localhost' 
     ? 'http://localhost:3001/api' 
-    : 'https://your-backend-domain.com/api',
+    : 'https://studyglade-com.onrender.com/api',
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   ALLOWED_FILE_TYPES: [
     'application/pdf',
@@ -75,24 +75,38 @@ class DocumentsApiService {
     return this.request(`/documents?${queryParams}`);
   }
 
-  async uploadDocument(documentData) {
-    const formData = new FormData();
-    formData.append('title', documentData.title);
-    formData.append('category', documentData.category);
-    formData.append('subject', documentData.subject);
-    formData.append('file', documentData.file);
+ async uploadDocument(documentData) {
+  const formData = new FormData();
+  formData.append('title', documentData.title);
+  formData.append('category', documentData.category);
+  formData.append('subject', documentData.subject);
+  formData.append('file', documentData.file);
 
+  const token = localStorage.getItem('authToken') || localStorage.getItem('tutorToken');
+
+  try {
     const response = await fetch(`${this.baseURL}/documents/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('tutorToken')}`
+        ...(token && { 'Authorization': `Bearer ${token}` })
       },
       body: formData
     });
 
-    if (!response.ok) throw new Error('Document upload failed');
-    return response.json();
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(result.message || `Document upload failed with status ${response.status}`);
+    }
+
+    return result; // { document: {...}, message: 'Document uploaded successfully!' }
+
+  } catch (error) {
+    console.error('Documents API upload failed:', error);
+    throw error;
   }
+}
+
 
   async incrementDownload(documentId) {
     return this.request(`/documents/${documentId}/download`, {
@@ -113,7 +127,7 @@ class DocumentsApiService {
 class DocumentsDataStore {
   constructor() {
     this.api = new DocumentsApiService();
-    this.useBackend = false; // Enable when backend is ready
+    this.useBackend = false; // Set true when backend is ready
     this.documents = [];
     this.categories = [];
     this.subjects = [];
@@ -141,53 +155,15 @@ class DocumentsDataStore {
 
   loadFromLocalStorage() {
     const stored = JSON.parse(localStorage.getItem('documents')) || [];
-    // Merge with default documents if empty
-    if (stored.length === 0) {
-      this.documents = this.getDefaultDocuments();
-      this.saveToLocalStorage();
-    } else {
-      this.documents = stored;
-    }
+    this.documents = stored.length ? stored : this.getDefaultDocuments();
+    if (!stored.length) this.saveToLocalStorage();
   }
 
   getDefaultDocuments() {
     return [
-      {
-        id: 1,
-        title: "Calculus Notes",
-        category: "notes",
-        subject: "mathematics",
-        uploader: "Admin",
-        downloads: 120,
-        uploaded_at: new Date("2025-10-01").toISOString(),
-        file_url: "#",
-        file_type: "pdf",
-        file_size: "2.4 MB"
-      },
-      {
-        id: 2,
-        title: "Physics Past Paper",
-        category: "past-papers",
-        subject: "physics",
-        uploader: "Admin",
-        downloads: 85,
-        uploaded_at: new Date("2025-09-28").toISOString(),
-        file_url: "#",
-        file_type: "pdf",
-        file_size: "1.8 MB"
-      },
-      {
-        id: 3,
-        title: "Biology Study Guide",
-        category: "guides",
-        subject: "biology",
-        uploader: "Admin",
-        downloads: 60,
-        uploaded_at: new Date("2025-09-30").toISOString(),
-        file_url: "#",
-        file_type: "docx",
-        file_size: "3.2 MB"
-      }
+      { id: 1, title: "Calculus Notes", category: "notes", subject: "mathematics", uploader: "Admin", downloads: 120, uploaded_at: new Date("2025-10-01").toISOString(), file_url: "#", file_type: "pdf", file_size: "2.4 MB" },
+      { id: 2, title: "Physics Past Paper", category: "past-papers", subject: "physics", uploader: "Admin", downloads: 85, uploaded_at: new Date("2025-09-28").toISOString(), file_url: "#", file_type: "pdf", file_size: "1.8 MB" },
+      { id: 3, title: "Biology Study Guide", category: "guides", subject: "biology", uploader: "Admin", downloads: 60, uploaded_at: new Date("2025-09-30").toISOString(), file_url: "#", file_type: "docx", file_size: "3.2 MB" }
     ];
   }
 
@@ -198,10 +174,7 @@ class DocumentsDataStore {
   async loadFilters() {
     if (this.useBackend) {
       try {
-        const [categories, subjects] = await Promise.all([
-          this.api.getCategories(),
-          this.api.getSubjects()
-        ]);
+        const [categories, subjects] = await Promise.all([this.api.getCategories(), this.api.getSubjects()]);
         this.categories = categories;
         this.subjects = subjects;
       } catch (error) {
@@ -220,35 +193,37 @@ class DocumentsDataStore {
   }
 
   async uploadDocument(documentData) {
+    if (!documentData || !documentData.file) throw new Error("No document data provided");
+
     if (this.useBackend) {
+      // Backend upload
       try {
         const result = await this.api.uploadDocument(documentData);
-        await this.loadDocuments(); // Reload to get the new document
+        await this.loadDocuments(); // Refresh to include new document
         return result;
       } catch (error) {
+        console.error('Backend upload failed:', error);
         throw error;
       }
     } else {
-      // Local storage fallback
-      return new Promise((resolve) => {
-        const newDoc = {
-          id: Date.now(),
-          title: documentData.title,
-          category: documentData.category,
-          subject: documentData.subject,
-          uploader: "You",
-          downloads: 0,
-          uploaded_at: new Date().toISOString(),
-          file_url: URL.createObjectURL(documentData.file),
-          file_type: documentData.file.type,
-          file_size: this.formatFileSize(documentData.file.size),
-          file_name: documentData.file.name
-        };
+      // Local fallback
+      const newDoc = {
+        id: Date.now(),
+        title: documentData.title,
+        category: documentData.category || 'other',
+        subject: documentData.subject || 'general',
+        uploader: "You",
+        downloads: 0,
+        uploaded_at: new Date().toISOString(),
+        file_url: URL.createObjectURL(documentData.file),
+        file_type: documentData.file.type,
+        file_size: this.formatFileSize(documentData.file.size),
+        file_name: documentData.file.name
+      };
 
-        this.documents.push(newDoc);
-        this.saveToLocalStorage();
-        resolve({ document: newDoc, message: 'Document uploaded successfully!' });
-      });
+      this.documents.push(newDoc);
+      this.saveToLocalStorage();
+      return { document: newDoc, message: 'Document uploaded successfully (local)' };
     }
   }
 
@@ -256,9 +231,9 @@ class DocumentsDataStore {
     if (this.useBackend) {
       try {
         await this.api.incrementDownload(documentId);
-        await this.loadDocuments(); // Reload to get updated download count
+        await this.loadDocuments();
       } catch (error) {
-        console.warn('Failed to increment download on backend');
+        console.warn('Failed to increment download on backend, using local count');
         this.useBackend = false;
         this.incrementLocalDownload(documentId);
       }
@@ -276,35 +251,20 @@ class DocumentsDataStore {
   }
 
   formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
+    if (!bytes) return '0 Bytes';
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
   }
 
   validateFile(file) {
-    if (!file) {
-      return { ok: false, message: 'Please select a file' };
-    }
-
-    if (file.size > CONFIG.MAX_FILE_SIZE) {
-      return { 
-        ok: false, 
-        message: `File must be smaller than ${CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB` 
-      };
-    }
-
-    if (!CONFIG.ALLOWED_FILE_TYPES.includes(file.type)) {
-      return { 
-        ok: false, 
-        message: 'File type not allowed. Allowed: PDF, Word, PowerPoint, Text, Images' 
-      };
-    }
-
+    if (!file) return { ok: false, message: 'Please select a file' };
+    if (file.size > CONFIG.MAX_FILE_SIZE) return { ok: false, message: `File must be smaller than ${CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB` };
+    if (!CONFIG.ALLOWED_FILE_TYPES.includes(file.type)) return { ok: false, message: 'File type not allowed. Allowed: PDF, Word, PowerPoint, Text, Images' };
     return { ok: true };
   }
 }
+
 
 // ---------- Global Instances ----------
 const documentsDataStore = new DocumentsDataStore();
@@ -526,57 +486,86 @@ function hideDocumentModal() {
 // ---------- Upload Handler ----------
 if (uploadBtn) {
   uploadBtn.addEventListener("click", async () => {
-    const title = document.getElementById("doc-title")?.value.trim();
-    const category = document.getElementById("doc-category")?.value;
-    const subject = document.getElementById("doc-subject")?.value;
+    const titleEl = document.getElementById("doc-title");
+    const categoryEl = document.getElementById("doc-category");
+    const subjectEl = document.getElementById("doc-subject");
     const fileInput = document.getElementById("doc-file");
+
+    const title = titleEl?.value.trim();
+    const category = categoryEl?.value || "other";
+    const subject = subjectEl?.value || "general";
     const file = fileInput?.files[0];
 
-    if (!title) {
-      UIState.showError("Please enter a document title");
-      return;
-    }
+    // Step 1: Basic validation
+    if (!title) return UIState.showError("Please enter a document title");
+    if (!file) return UIState.showError("Please select a file");
 
-    if (!file) {
-      UIState.showError("Please select a file");
-      return;
-    }
-
-    // Validate file
-    const validation = documentsDataStore.validateFile(file);
-    if (!validation.ok) {
-      UIState.showError(validation.message);
-      return;
+    // Step 2: File validation
+    if (documentsDataStore?.validateFile) {
+      const validation = documentsDataStore.validateFile(file);
+      if (!validation.ok) return UIState.showError(validation.message);
     }
 
     UIState.setLoading(true);
 
     try {
-      const documentData = {
-        title,
-        category: category || 'other',
-        subject: subject || 'general',
-        file
-      };
+      const documentData = { title, category, subject, file };
+      let result;
 
-      const result = await documentsDataStore.uploadDocument(documentData);
-      
-      // Reset form
-      document.getElementById("doc-title").value = "";
-      document.getElementById("doc-file").value = "";
-      if (document.getElementById("doc-category")) document.getElementById("doc-category").value = "";
-      if (document.getElementById("doc-subject")) document.getElementById("doc-subject").value = "";
+      try {
+        if (documentsDataStore?.uploadDocument instanceof Function) {
+          // Use the DocumentsDataStore method
+          result = await documentsDataStore.uploadDocument(documentData);
+        } else {
+          // Direct fetch fallback
+          const formData = new FormData();
+          formData.append("title", title);
+          formData.append("category", category);
+          formData.append("subject", subject);
+          formData.append("file", file);
 
-      await renderSections();
+          const token = localStorage.getItem('authToken') || localStorage.getItem('tutorToken');
+
+          const response = await fetch(`${CONFIG.API_BASE_URL}/documents/upload`, {
+            method: "POST",
+            headers: { ...(token && { 'Authorization': `Bearer ${token}` }) },
+            body: formData
+          });
+
+          result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.message || `Upload failed with status ${response.status}`);
+        }
+
+      } catch (error) {
+        UIState.showError("Upload failed: " + error.message);
+        console.error("Document Upload Error:", error);
+        return; // stop execution if inner upload fails
+      }
+
+      // Step 3: Reset form
+      titleEl.value = "";
+      fileInput.value = "";
+      if (categoryEl) categoryEl.value = "";
+      if (subjectEl) subjectEl.value = "";
+
+      // Step 4: Refresh documents grid
+      if (documentsDataStore?.loadDocuments) await documentsDataStore.loadDocuments();
+      if (typeof renderSections === "function") await renderSections();
+
+      // Step 5: Show success feedback
       UIState.showSuccess(result.message || "Document uploaded successfully!");
 
     } catch (error) {
+      console.error("Upload Error:", error);
       UIState.showError("Upload failed: " + error.message);
     } finally {
       UIState.setLoading(false);
     }
   });
 }
+
+
+
 
 // ---------- Filters and Search ----------
 async function filterDocuments() {

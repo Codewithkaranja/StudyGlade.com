@@ -165,11 +165,11 @@
               />
             </div>
             <div class="form-group">
-              <label for="questionAmount">Amount ($)</label>
+              <label for="questionAmountInput">Amount ($)</label>
               <input
                 type="number"
-                id="questionAmount"
-                name="questionAmount"
+                id="questionAmountInput"
+                name="questionAmountInput"
                 min="1"
                 required
               />
@@ -207,11 +207,11 @@
         <h2>Complete Payment to Post Assignment</h2>
         <form id="payment-form">
           <div class="form-group">
-            <label for="numPages">Number of Pages</label>
+            <label for="numPagesInput">Number of Pages</label>
             <input
               type="number"
-              id="numPages"
-              name="numPages"
+              id="numPagesInput"
+              name="numPagesInput"
               min="1"
               required
             />
@@ -277,6 +277,7 @@
             </tbody>
           </table>
         </div>
+        <!--<p id="details-views">Views: 0</p>-->
 
         <!-- Pagination -->
         <div class="pagination-container">
@@ -328,8 +329,13 @@
           <input
             type="text"
             id="message-input"
-            placeholder="Type your message to the tutor..."
+            placeholder="Type your message..."
             required
+          />
+          <input
+            type="file"
+            id="message-file"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg"
           />
           <button type="submit" class="btn-primary">Send</button>
         </form>
