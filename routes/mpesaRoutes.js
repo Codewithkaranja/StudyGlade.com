@@ -4,10 +4,10 @@ import { mpesaCallback } from "../controllers/mpesaCallbackController.js";
 
 const router = express.Router();
 
-// POST /api/payments/mpesa
+// ✅ Initiate payment request (user triggers this)
 router.post("/mpesa", initiateMpesaPayment);
 
-// POST /api/payments/mpesa/callback
+// ✅ M-Pesa callback endpoint (Safaricom calls this)
 router.post("/mpesa/callback", mpesaCallback);
 
 export default router;

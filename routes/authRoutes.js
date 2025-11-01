@@ -3,10 +3,8 @@ import { registerUser } from '../controllers/authController.js';
 
 const router = express.Router();
 
-// Register user with email only
+// ✅ Register user with email only
 router.post('/register', registerUser);
 
-// No login route needed for now
-// router.post('/login', loginUser);
-
+// ❌ No login route needed for now
 export default router;
