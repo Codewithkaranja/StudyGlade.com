@@ -9,13 +9,13 @@ import {
 
 const router = express.Router();
 
-// ✅ Multer setup for assignment attachments
+// Multer setup for handling assignment file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// ✅ Public routes — no protect middleware
-router.post('/', createAssignment);
-router.get('/', getAssignments);
-router.put('/:id', updateAssignment);
-router.post('/upload-file', upload.single('file'), attachFileToAssignment);
+// PUBLIC ROUTES — No authentication middleware
+router.post('/', createAssignment); // Create a new assignment
+router.get('/', getAssignments); // Get all assignments
+router.put('/:id', updateAssignment); // Update an assignment by ID
+router.post('/upload-file', upload.single('file'), attachFileToAssignment); // Attach a file to an assignment
 
 export default router;
